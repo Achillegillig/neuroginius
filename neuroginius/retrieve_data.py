@@ -6,6 +6,10 @@ import parcellate as par
 from pathlib import Path
 import os
 from abc import ABC
+import warnings
+from tqdm.auto import tqdm
+from concurrent.futures import ThreadPoolExecutor
+import time
 
 def get_data(SubID, database):
     #database: str referring to the fMRI database. Can be "ISHARE" or "MEMENTO".
@@ -60,7 +64,7 @@ def retrieve_parcellated_data(SubID, db_file, DataFile, **kwargs):
 
     # Check if the table exists
     if in_df:
-        data = pd.read_sql_query(query, conn) 
+        data = pd.read_sql_query(query, conn, index_col=0) 
         return data
 
     print(f'{SubID} not in the database, computing and saving parcellation')
@@ -74,7 +78,20 @@ def retrieve_parcellated_data(SubID, db_file, DataFile, **kwargs):
 
     data = par.parcellate(img, atlas)
     data = pd.DataFrame(data)
-    data.to_sql(f'{SubID}', conn, index=True, index_label='ROI')
+    try:
+        data.to_sql(f'{SubID}',
+                    conn,
+                    index=True,
+                    index_label='ROI')
+    except sqlite3.OperationalError:
+        time.sleep(0.01)
+        data.to_sql(f'{SubID}',
+                    conn,
+                    index=True,
+                    index_label='ROI')
+
+        
+    
     
     conn.commit()
     conn.close()
@@ -82,18 +99,24 @@ def retrieve_parcellated_data(SubID, db_file, DataFile, **kwargs):
     return data
 
 def retrieve_all_parcellated_data(db_file, **kwargs):
-    import warnings
-    warnings.warn('retrieve_all_parcellated_data not tested')
-
-    n_sub = kwargs.get('n_sub', None)
-
-    query = "SELECT * FROM parcellated_data"
-
     conn = sqlite3.connect(db_file)
-    # Execute a SQL query and load the result into a DataFrame
-    data = pd.read_sql_query(query, conn)
+    cursor = conn.cursor()
+    # Get all table names
+    cursor.execute("SELECT name FROM sqlite_master WHERE type='table'")
+    tables = cursor.fetchall()
 
-    if data.shape[0] != 0:
-        return data
-    else:
-        raise ValueError('No data in the database')
+    # Retrieve all tables and store them in a list
+    df_list = []
+
+    with ThreadPoolExecutor() as executor:
+        for table_name in tqdm(tables):
+            query = f"SELECT * FROM {table_name[0]}"
+            # df = pd.read_sql_query(query, conn)
+            df = pd.read_sql_query(query,
+                                   conn
+                                   )
+            df_list.append(df)
+
+    # df = pd.concat(df_list, axis=2)
+
+    return df_list
