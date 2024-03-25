@@ -5,6 +5,6 @@ def parcellate(img, atlas):
 
     masker = NiftiLabelsMasker(labels_img=atlas, strategy='mean')
 
-    avg_data = masker.fit_transform(img)
+    avg_data = masker.fit_transform(img).T
     
     return avg_data
