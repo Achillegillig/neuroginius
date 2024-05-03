@@ -8,6 +8,11 @@ import itertools
 import sys
 sys.path.insert(1, '/homes_unix/agillig/neuroginius/neuroginius')
 import retrieve_data as rtr
+import functional_connectivity as FC
+from tqdm.auto import tqdm
+
+
+from SQLInterface import connectivity as SQLConn
 
 
 def decoding_pipeline(job, **kwargs):
@@ -57,12 +62,12 @@ def decoding_pipeline(job, **kwargs):
 
 
 
-    print(f'loading parcellated data')
     #TODO: add interface that #1 check if there are missing subjects according to the provided list,
     #2 computes the missing ones, 3 retrieves everything
 
     # check if all parcellations are here
     missing = rtr.check_tables_in_sql(SubList, ParcellatedData_db)
+    print(f'{len(missing)} missing parcellations')
     #temporary too, TODO: implement in neuroginius
     # will work only on pipeau, obviously. but should work
     # if len(missing) > 0:
@@ -78,21 +83,42 @@ def decoding_pipeline(job, **kwargs):
 
     # rsData = rtr.retrieve_all_parcellated_data(ParcellatedData_db,
     #                                            SubList, 
-    #                                            parcellation_db=ParcellatedData_db, 
-    #                                            atlas=atlas_file)
-    print('loading complete')
+    #                                            compute_missing=False)
 
     ## TO BUILD: frame filtering thanks to edge time series / RSS
 
-    print('loading functional connectivity matrices')
-    FCData = rtr.get_fc_data(FCData_db, SubList, compute_missing=False, parcellation_db=ParcellatedData_db, matrix_form=False, atlas=atlas_file)
+    # print('computing functional connectivity')
+    # for data in tqdm(rsData):
+    #     tmp_fc_data = FC.compute_connectivity(data, method='pearson', matrix_form=False)
 
+    # print('loading functional connectivity matrices')
+    SubList = [sub for sub in SubList if sub not in missing]
+    SubList = SubList[:100]
+    # FCData = rtr.get_fc_data(FCData_db, SubList, check_missing=True, compute_missing=True, parcellation_db=ParcellatedData_db, matrix_form=False, atlas=atlas_file)
 
+    FCData, SubList_new = SQLConn.ConnectivityFromParcellationSQL(ParcellatedData_db,
+                                                                  SubList=SubList, 
+                                                                  method='pearson', 
+                                                                  n_jobs=16,
+                                                                  ConnectivityDb=FCData_db
+                                                                  )
+    print(type(FCData))
+    print(len(FCData))
+    print(SubList_new[0], SubList[0], FCData[0])
+
+    differences = [(i, a, b) for i, (a, b) in enumerate(zip(SubList, SubList_new)) if a != b]
+
+    for i, a, b in differences:
+        print(f"Element at index {i} is not the same: {a} in SubList, {b} in SubList_new")
     ## TO BUILD: decoding with nested cv & non parametric testing
 
     ## To build: permutation feature importance to interpret decoding drivers
 
     ## end goal: "multivariate" optimization to find the network that best predicts individual differences
 
+
     print('end of file, done')
 
+
+if __name__ == '__main__':
+    decoding_pipeline(1)
