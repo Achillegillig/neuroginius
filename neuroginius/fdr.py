@@ -15,6 +15,8 @@ def plot_fdr(pvalues, pvalues_corr, alpha=0.05):
         label=f"Threshold $\\alpha = {alpha}$",
         linestyles="--"
     )
+    ax.set_xlabel("pvalues_raw")
+    ax.set_ylabel("pvalues_corrected")
     ax.set_title(f"False discovery correction")
     ax.legend()
     return fig
