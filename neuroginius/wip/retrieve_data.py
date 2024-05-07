@@ -10,7 +10,8 @@ import warnings
 from tqdm.auto import tqdm
 from concurrent.futures import ThreadPoolExecutor
 import time
-import FunctionalConnectivity as FC
+import functional_connectivity as FC
+from joblib import Parallel, delayed
 
 def get_data(SubID, database):
     #database: str referring to the fMRI database. Can be "ISHARE" or "MEMENTO".
@@ -24,13 +25,14 @@ def get_data(SubID, database):
         # return parcellate_and_retrieve(SubID, database)
         pass
 
-def get_fc_data(db_file, SubList, compute_missing=True, parcellation_db=None, matrix_form=False, atlas=None):
+def get_fc_data(db_file, SubList=None, check_missing=True, compute_missing=True, parcellation_db=None, matrix_form=False, atlas=None, **kwargs):
+    args = (db_file, SubList, check_missing, compute_missing,parcellation_db, matrix_form, atlas)
     #TODO: add support for parcellated data as pandas df / np array
+    #TODO: make it abstract and applicable to different fetching types such as pickle, csv, etc.
+    #TODO: take out automatic computing of missing subjects. this should be handled by another function
     if type(SubList) == 'str':
         SubList = [SubList]
-    if matrix_form:
-        warnings.warn('Warning: matrix_form=True. will break the database if automatic saving')
-    #check if all subjects are in the database
+
     conn = sqlite3.connect(db_file)
     cur = conn.cursor()
     # Execute a SQL query to get all table names
@@ -41,25 +43,48 @@ def get_fc_data(db_file, SubList, compute_missing=True, parcellation_db=None, ma
     cur.close()
     conn.close()
     table_names = [table[0] for table in table_names]
-    missing = [SubID for SubID in SubList if SubID not in table_names]
-    if len(missing) == 0:
-        return retrieve_tables_from_sql(db_file)
+    missing = check_missing_datatables(SubList, table_names)
+
+    #TODO: ignore files for which parcellation is also missing
+
+    if len(missing) == 0 or check_missing == False:
+        return retrieve_from_sql_table(db_file, index_col=None)
     else:
-        print(f'subjects not in the database, computing and saving functional connectivity')
+        raise ValueError(f'{len(missing)} subjects not in the database, compute and save functional connectivity first')
         # return parcellate_and_retrieve(SubID, database)
         if parcellation_db is None:
             raise ValueError('parcellation_db is required to compute functional connectivity')
-        for SubID in tqdm(missing):
-            if check_table_in_sql(SubID, parcellation_db) == False and compute_missing == False:
-                continue
-            data = retrieve_parcellated_data(SubID, parcellation_db, atlas=atlas, compute_missing=compute_missing)
-            FC.compute_correlation_matrix(data, matrix_form=matrix_form)
-            save_to_sql_table(SubID, data, db_file, SubID)
+        # for SubID in tqdm(missing):
+        #     if check_table_in_sql(SubID, parcellation_db) == False or compute_missing == False:
+        #         continue
+        #     data = retrieve_parcellated_data(SubID, parcellation_db, atlas=atlas, compute_missing=compute_missing)
+        #     FC.compute_connectivity(data, matrix_form=matrix_form)
+        #     SaveToSQLTable(SubID, data, db_file, SubID)
+
+        Parallel(n_jobs=40)(delayed(process_fc_subid)(SubID, parcellation_db, atlas, compute_missing, matrix_form, db_file) for SubID in tqdm(missing))
+        return get_fc_data(*args, **kwargs)
+
+def process_fc_subid(SubID, parcellation_db, atlas, compute_missing, matrix_form, db_file):
+    if check_table_in_sql(SubID, parcellation_db) == False or compute_missing == False:
+        return
+    data = retrieve_parcellated_data(SubID, parcellation_db, atlas=atlas, compute_missing=compute_missing)
+    fc_data = FC.compute_connectivity(data, matrix_form=matrix_form)
+    max_retry = 20
+    c = 0
+    while c < max_retry:
+        try:
+            return SaveToSQLTable(fc_data, db_file, SubID)
+        except sqlite3.OperationalError:
+            time.sleep(0.01)
+            c += 1
+            continue
+
 
 def check_missing_datatables(SubList, table_names):
     return [SubID for SubID in SubList if SubID not in table_names]
 
-def check_data_in_sql_table(SubID, db_file, colname):
+
+def check_data_in_sql_table(SubID, db_file, colname='SHARE_ID'):
     #works
     conn = sqlite3.connect(db_file)
 
@@ -233,7 +258,7 @@ def retrieve_all_parcellated_data(db_file, SubList, **kwargs):
                 raise ValueError('parcellation_db and atlas are required to compute missing subjects')
             for SubID in list(missing):
                 data = retrieve_parcellated_data(SubID, parcellation_db, atlas=atlas)
-                save_to_sql_table(SubID, data, db_file, SubID)
+                retry(SaveToSQLTable, SubID, data, db_file, SubID)
         else:
             print('missing parcellations will not be computed')
 
@@ -251,25 +276,51 @@ def retrieve_all_parcellated_data(db_file, SubList, **kwargs):
 
     return df_list
 
-def retrieve_from_sql_table(db_file, SubID=None):
+def retrieve_from_sql_table(db_file, SubID=None, index_col="SHARE_ID"):
     #NOT TESTED; TEMPLATE
-    pass
+    conn = sqlite3.connect(db_file)
+    cur = conn.cursor()
+    # Execute a SQL query to get all table names
+    cur.execute("SELECT name FROM sqlite_master WHERE type='table'")
+    # Fetch all results
+    table_name = cur.fetchone()[0]
+
+    # Get the table info
+    cur.execute(f"PRAGMA table_info({table_name})")
+    table_info = cur.fetchall()
+
+    # Close the cursor and connection
+    cur.close()
+    
+    if SubID is None:
+        query = f"SELECT * FROM {table_name}"
+    else:
+        query = f"SELECT * FROM {table_name} WHERE {index_col} = '{SubID}'"
+
+    data = pd.read_sql_query(query, conn, index_col=index_col)
+    conn.close()
+    return data
+
     
 
-def retrieve_tables_from_sql(db_file, table_names=None, index_col=None):
+    
+
+def RetrieveTablesFromSQL(db_file, table_names=None, index_col=None):
 
     conn = sqlite3.connect(db_file)
     cursor = conn.cursor()
 
     cursor.execute("SELECT name FROM sqlite_master WHERE type='table'")
     tables = cursor.fetchall()
+    tables = [table[0] for table in tables]
 
     if table_names is not None:
         if type(table_names) != str:
             tables = table_names
         else:
             query = f"SELECT * FROM {table_names}"
-            data = pd.read_sql_query(query, conn, index_col='ROI')
+            data = pd.read_sql_query(query, conn, index_col=index_col)
+
             return data
 
     
@@ -285,7 +336,12 @@ def retrieve_tables_from_sql(db_file, table_names=None, index_col=None):
 
     return df_list
 
-def save_to_sql_table(SubID, data, db_file, table_name='data', index_label=None, **kwargs):
+def SaveToSQLTable(data, db_file, index_label=None, table_name='data', **kwargs):
+    # if isinstance(data, pd.DataFrame) == False:
+    #     if data.shape[0] != 1:
+    data = data.reshape(1, -1)
+    data = pd.DataFrame(data)
+    
     if index_label is None:
         index = False
     else:
@@ -293,6 +349,22 @@ def save_to_sql_table(SubID, data, db_file, table_name='data', index_label=None,
     conn = sqlite3.connect(db_file)
     data.to_sql(f'{table_name}',
                     conn,
+                    if_exists='append',
                     index=index,
                     index_label=index_label)
     conn.close()
+
+
+# def retry(func, *args, **kwargs):
+#     max_retry_count = 10  # Maximum number of retries
+#     retry_count = 0
+
+#     while retry_count < max_retry_count:
+#         try:
+#             return func(*args, **kwargs)
+#         except sqlite3.OperationalError as e:
+#             if 'database is locked' in str(e):
+#                 time.sleep(1)  # Wait for 1 second
+#                 retry_count += 1
+#                 if retry_count == max_retry_count:  # If this was the last retry
+#                     raise Exception("Maximum number of retries exceeded")  # Raise a custom exception
