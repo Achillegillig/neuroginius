@@ -16,6 +16,7 @@ def compute_edge_timeseries(rsData, matrix_form=False):
         indices_uppertriangle = [np.triu_indices(pairwise_products[0].shape[0], 1) for i in range(pairwise_products.shape[0])]
         edge_ts = np.array([prod[ind] for prod, ind in zip(pairwise_products, indices_uppertriangle)])
     
+<<<<<<< HEAD
     return edge_ts
 
 def label_ets(labels):
@@ -29,3 +30,6 @@ def label_ets(labels):
     ts_labels = np.array(pairwise_products[indices])
 
     return ets_labels
+=======
+    return edge_ts
+>>>>>>> 962701e0569ba55708fd18965a7a85b52b60a1a3
