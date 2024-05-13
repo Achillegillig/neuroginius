@@ -15,9 +15,9 @@ import os
 
 atlas_mapping = {
     "harvard-oxford": lambda : datasets.fetch_atlas_harvard_oxford("cort-maxprob-thr25-2mm"),
-    "schaeffer": lambda : datasets.fetch_atlas_schaefer_2018(resolution_mm=2),
-    "schaeffer200": lambda : datasets.fetch_atlas_schaefer_2018(n_rois=200, resolution_mm=2),
-    "schaeffer100": lambda : datasets.fetch_atlas_schaefer_2018(n_rois=100, resolution_mm=2),
+    "schaefer": lambda : datasets.fetch_atlas_schaefer_2018(resolution_mm=2),
+    "schaefer200": lambda : datasets.fetch_atlas_schaefer_2018(n_rois=200, resolution_mm=2),
+    "schaefer100": lambda : datasets.fetch_atlas_schaefer_2018(n_rois=100, resolution_mm=2),
     "difumo": lambda : datasets.fetch_atlas_difumo(legacy_format=False),
     "smith": datasets.fetch_atlas_smith_2009,
     "msdl": datasets.fetch_atlas_msdl
