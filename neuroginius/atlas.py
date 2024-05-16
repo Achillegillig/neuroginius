@@ -24,7 +24,7 @@ atlas_mapping = {
 }
 
 is_soft_mapping = {
-    "schaeffer200": False,
+    "schaefer200": False,
     "msdl": True,
     "GINNA": False
 }
