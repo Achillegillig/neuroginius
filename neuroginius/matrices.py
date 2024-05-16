@@ -50,7 +50,6 @@ def fast_hist(matrix:np.ndarray):
     ax.set_xlim(-1, 1)
     return fig, ax
 
-# TODO Return axes instead of figure
 def plot_matrix(
     mat, atlas, macro_labels=True, bounds=None, cmap="seismic", axes=None
 ):
