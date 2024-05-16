@@ -25,6 +25,7 @@ atlas_mapping = {
 
 is_soft_mapping = {
     "schaefer200": False,
+    "harvard-oxford": False,
     "msdl": True,
     "GINNA": False
 }
