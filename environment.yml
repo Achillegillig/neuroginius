@@ -5,6 +5,7 @@ channels:
 dependencies:
   - appnope=0.1.4=pyhd8ed1ab_0
   - asttokens=2.4.1=pyhd8ed1ab_0
+  - biopython=1.83=py312h41838bb_0
   - blas=1.0=mkl
   - bottleneck=1.3.7=py312h32608ca_0
   - brotli=1.0.9=h6c40b1e_8
@@ -94,6 +95,7 @@ dependencies:
   - ptyprocess=0.7.0=pyhd3deb0d_0
   - pure_eval=0.2.2=pyhd8ed1ab_0
   - pybind11-abi=5=hd3eb1b0_0
+  - pycirclize=1.4.0=pyhd8ed1ab_0
   - pycparser=2.22=pyhd8ed1ab_0
   - pygments=2.18.0=pyhd8ed1ab_0
   - pyopenssl=24.0.0=pyhd8ed1ab_0
@@ -130,3 +132,4 @@ dependencies:
   - zipp=3.17.0=pyhd8ed1ab_0
   - zlib=1.2.13=h8a1eda9_5
   - zstd=1.5.5=hc035e20_2
+prefix: /Users/jlegrand/miniconda3/envs/neuroginius
