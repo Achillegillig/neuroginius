@@ -3,6 +3,9 @@ import numpy as np
 import numpy.linalg as npl
 import matplotlib.pyplot as plt
 from nilearn.connectome import cov_to_corr
+import matplotlib.patches as mpatches
+
+
 
 
 def generate_topology(target_label, labels):
@@ -53,8 +56,6 @@ def generate_correlations(n_subjects, topology, loc, scale, snr=2, from_prec=Fal
 
         synthetic += np.eye(n_regions)
         synthetic = synthetic.T @ synthetic
-        if debug_display:
-            plt.hist(synthetic[mask], histtype="step", color="blue")
 
         np.testing.assert_almost_equal(synthetic, synthetic.T)
         eigenvalues = np.linalg.eigvalsh(synthetic)
@@ -79,5 +80,8 @@ def generate_correlations(n_subjects, topology, loc, scale, snr=2, from_prec=Fal
         correlations.append(correlation) # We could yield but what's the point
     if debug_display:
         plt.title("Random values in topology mask")
+        green_patch = mpatches.Patch(color='green', label='Covariance')
+        red_patch = mpatches.Patch(color='red', label='Correlation')
+        plt.legend(handles=[green_patch, red_patch])
         plt.show()
     return correlations
