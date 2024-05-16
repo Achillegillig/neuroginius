@@ -21,6 +21,8 @@ def generate_topology(target_label, labels):
     
 
 def generate_topology_net_interaction(targets, labels):
+    if targets[0] == targets[1]:
+        return generate_topology(targets[0], labels)
 
     n_regions = len(labels)
     labels = np.array(labels)
