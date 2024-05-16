@@ -91,7 +91,6 @@ def group_groupby(matrices: Iterable, atlas: Atlas) -> Tuple[np.ndarray, list[st
     """
     res = (groupby_blocks(mat, atlas) for mat in matrices)
     blocks, labels = zip(*res)
-    #blocks = np.stack([AD_block.values for AD_block in blocks], axis=0)
     
     assert all_equal(labels)
     labels = labels[0]
