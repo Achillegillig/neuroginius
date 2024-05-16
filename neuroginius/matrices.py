@@ -50,8 +50,9 @@ def fast_hist(matrix:np.ndarray):
     ax.set_xlim(-1, 1)
     return fig, ax
 
+# TODO Return axes instead of figure
 def plot_matrix(
-    mat, atlas, macro_labels=True, bounds=None, cmap="seismic"
+    mat, atlas, macro_labels=True, bounds=None, cmap="seismic", axes=None
 ):
     """Simplified version of the plot_matrices function. Only displays
     a single matrix.
@@ -74,7 +75,8 @@ def plot_matrix(
     if bounds is None:
         bounds = (-span, span)
 
-    fig, ax = plt.subplots(1, 1, figsize=(8, 6))
+    if axes is None:
+        fig, axes = plt.subplots(1, 1, figsize=(8, 6))
 
     if macro_labels:
         networks = np.array(atlas.macro_labels)
@@ -88,8 +90,8 @@ def plot_matrix(
                 ticks.append(i)
                 lbls.append(label)
                 prev_label = label
-                ax.hlines(i, 0, n_regions, colors="black", linestyles="dotted")
-                ax.vlines(i, 0, n_regions, colors="black", linestyles="dotted")
+                axes.hlines(i, 0, n_regions, colors="black", linestyles="dotted")
+                axes.vlines(i, 0, n_regions, colors="black", linestyles="dotted")
 
         ticks.append(i + 1)
 
@@ -98,18 +100,17 @@ def plot_matrix(
 
     sns.heatmap(
         mat[np.ix_(sort_index, sort_index)],
-        ax=ax,
+        ax=axes,
         vmin=bounds[0],
         vmax=bounds[1],
         cmap=cmap
     )
 
     if macro_labels:
-        ax.yaxis.set_minor_locator(FixedLocator(ticks))
-        ax.yaxis.set_major_locator(FixedLocator([(t0 + t1) / 2 for t0, t1 in zip(ticks[:-1], ticks[1:])]))
-        ax.xaxis.set_major_locator(FixedLocator([(t0 + t1) / 2 for t0, t1 in zip(ticks[:-1], ticks[1:])]))
-        ax.set_yticklabels(lbls, rotation=0)
-        ax.set_xticklabels(lbls, rotation=30)
+        axes.yaxis.set_minor_locator(FixedLocator(ticks))
+        axes.yaxis.set_major_locator(FixedLocator([(t0 + t1) / 2 for t0, t1 in zip(ticks[:-1], ticks[1:])]))
+        axes.xaxis.set_major_locator(FixedLocator([(t0 + t1) / 2 for t0, t1 in zip(ticks[:-1], ticks[1:])]))
+        axes.set_yticklabels(lbls, rotation=0)
+        axes.set_xticklabels(lbls, rotation=30)
 
-    fig.tight_layout()
-    return fig
+    return axes
