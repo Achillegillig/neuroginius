@@ -1,6 +1,9 @@
 #ignore atlas dir
 atlases/
 
+# Vim swap files
+*.swp
+
 # Standard python gitignore taken from https://github.com/github/gitignore/blob/main/Python.gitignore
 # Byte-compiled / optimized / DLL files
 __pycache__/
