@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "neuroginius"
-version = "0.0.1"
+version = "0.0.2"
 description = "A repertoire of tools in python for high-level analyses of fMRI data."
 authors = ["Achille Gillig <achille.gillig@u-bordeaux.fr>", "Jonathan Legrand <jonathanamlegrand@gmail.com>"]
 readme = "README.md"
@@ -27,6 +27,7 @@ scipy = "^1.13.1"
 seaborn = "^0.13.2"
 
 
+pycirclize = "^1.6.0"
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
