@@ -65,23 +65,23 @@ def _fetch_atlas_ginna(
         f"{ROOT_DIR}/M5_N33/RSN41_cognitive_labeling.xlsx"
     )
 
-    # TODO and simplify please
-    notrunc = original_labels.drop(original_labels[original_labels.tissue.str.contains("trunc")].index, axis=0)
+    # # TODO and simplify please
+    # notrunc = original_labels.drop(original_labels[original_labels.tissue.str.contains("trunc")].index, axis=0)
     
-    merged = pd.merge(
-        notrunc,
-        updated_rsn,
-        on="Numbering_original",
-        how="inner"
-    )
-    labels = merged["label gael-marc anat"] + "_" + merged["icol"].astype(str).map(lambda x: x.zfill(3))
-    labels = labels.to_list()
+    # merged = pd.merge(
+    #     notrunc,
+    #     updated_rsn,
+    #     on="Numbering_original",
+    #     how="inner"
+    # )
+    # labels = merged["label gael-marc anat"] + "_" + merged["icol"].astype(str).map(lambda x: x.zfill(3))
+    # labels = labels.to_list()
     
     atlas_bunch = Bunch(
         maps=atlas_path,
-        labels=labels,
-        networks=merged.Numbering_new.to_list(),
-        description="Experimental atlas of resting state networks with regions, v.0.3 with 33 networks",
+        labels=None,
+        networks=None,
+        description="GINNA atlas from xx paper",
         # **dict(merged)
     )
     return atlas_bunch
