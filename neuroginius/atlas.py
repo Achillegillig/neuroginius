@@ -27,8 +27,8 @@ def _fetch_atlas_m5n33_regions(
     # TODO and simplify please
     notrunc = original_labels.drop(original_labels[original_labels.tissue.str.contains("trunc")].index, axis=0)
 
-    updated_rsn = pd.read_csv(
-        f"{ROOT_DIR}/M5_N33/RSN41_cognitive_labeling_updated.csv"
+    updated_rsn = pd.read_excel(
+        f"{ROOT_DIR}/M5_N33/RSN41_cognitive_labeling.xlsx"
     )
     merged = pd.merge(
         notrunc,
@@ -36,7 +36,7 @@ def _fetch_atlas_m5n33_regions(
         on="Numbering_original",
         how="inner"
     )
-    labels = merged["Anatomical label achille 2024"] + "_" + merged["icol"].astype(str).map(lambda x: x.zfill(3))
+    labels = merged["label gael-marc anat"] + "_" + merged["icol"].astype(str).map(lambda x: x.zfill(3))
     labels = labels.to_list()
     
     atlas_bunch = Bunch(
@@ -45,6 +45,44 @@ def _fetch_atlas_m5n33_regions(
         networks=merged.Numbering_new.to_list(),
         description="Experimental atlas of resting state networks with regions, v.0.3 with 33 networks",
         **dict(merged)
+    )
+    return atlas_bunch
+
+def _fetch_atlas_ginna(
+    # atlas_tsv=f"{ROOT_DIR}/GINNA/RSN_M5_clean2_ws.dat",
+    # updated_rsn=f"{ROOT_DIR}/M5_N33/RSN41_cognitive_labeling_updated.csv",
+    atlas_path=os.listdir(f"{ROOT_DIR}/GINNA/maps_3D")
+    ):
+    atlas_path = [os.path.join(f"{ROOT_DIR}/GINNA/maps_3D", f) for f in atlas_path]
+    atlas_path.sort()
+
+    # original_labels = pd.read_csv(atlas_tsv, sep="\t")
+    # original_labels["voxel_value"] = original_labels.index.values + 1
+    # networks = "RSN" + original_labels["RSN"].astype(str).apply(lambda x: x.zfill(2))
+    # original_labels["Numbering_original"] = networks
+
+    updated_rsn = pd.read_excel(
+        f"{ROOT_DIR}/M5_N33/RSN41_cognitive_labeling.xlsx"
+    )
+
+    # TODO and simplify please
+    notrunc = original_labels.drop(original_labels[original_labels.tissue.str.contains("trunc")].index, axis=0)
+    
+    merged = pd.merge(
+        notrunc,
+        updated_rsn,
+        on="Numbering_original",
+        how="inner"
+    )
+    labels = merged["label gael-marc anat"] + "_" + merged["icol"].astype(str).map(lambda x: x.zfill(3))
+    labels = labels.to_list()
+    
+    atlas_bunch = Bunch(
+        maps=atlas_path,
+        labels=labels,
+        networks=merged.Numbering_new.to_list(),
+        description="Experimental atlas of resting state networks with regions, v.0.3 with 33 networks",
+        # **dict(merged)
     )
     return atlas_bunch
 
@@ -57,7 +95,8 @@ atlas_mapping = {
     "difumo": lambda : datasets.fetch_atlas_difumo(legacy_format=False),
     "smith": datasets.fetch_atlas_smith_2009,
     "msdl": datasets.fetch_atlas_msdl,
-    "m5_n33": _fetch_atlas_m5n33_regions
+    "m5_n33": _fetch_atlas_m5n33_regions,
+    "ginna": _fetch_atlas_ginna
 }
 
 is_soft_mapping = {
@@ -65,7 +104,8 @@ is_soft_mapping = {
     "harvard-oxford": False,
     "msdl": True,
     "GINNA": False,
-    "m5_n33": False
+    "m5_n33": False,
+    "ginna": True
 }
 
 class Atlas(Bunch):
