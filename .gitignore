@@ -1,6 +1,3 @@
-#ignore atlas dir
-atlases/
-
 # Vim swap files
 *.swp
 

@@ -20,7 +20,8 @@ atlas_mapping = {
     "schaefer100": lambda : datasets.fetch_atlas_schaefer_2018(n_rois=100, resolution_mm=2),
     "difumo": lambda : datasets.fetch_atlas_difumo(legacy_format=False),
     "smith": datasets.fetch_atlas_smith_2009,
-    "msdl": datasets.fetch_atlas_msdl
+    "msdl": datasets.fetch_atlas_msdl,
+    "m5_n33": _fetch_atlas_m5n33_regions
 }
 
 is_soft_mapping = {
@@ -98,3 +99,39 @@ class Atlas(Bunch):
             return self.networks
         l = self.labels
         return list(map(lambda x: str(x).split("_")[2], l))
+    
+    ROOT_DIR = Path(os.path.dirname(os.path.abspath(__file__))).parent / 'atlases'
+
+    def _fetch_atlas_m5n33_regions(
+        atlas_tsv=f"{ROOT_DIR}/M5_N33/RSN_M5_clean2_ws.dat",
+        updated_rsn=f"{ROOT_DIR}/M5_N33/RSN41_cognitive_labeling_updated.csv",
+        atlas_path=f"{ROOT_DIR}/M5_N33/M5_no-trunc.nii.gz"
+        ):
+        original_labels = pd.read_csv(atlas_tsv, sep="\t")
+        original_labels["voxel_value"] = original_labels.index.values + 1
+        networks = "RSN" + original_labels["RSN"].astype(str).apply(lambda x: x.zfill(2))
+        original_labels["Numbering_original"] = networks
+
+        # TODO and simplify please
+        notrunc = original_labels.drop(original_labels[original_labels.tissue.str.contains("trunc")].index, axis=0)
+
+        updated_rsn = pd.read_csv(
+            f"{ROOT_DIR}/M5_N33/RSN41_cognitive_labeling_updated.csv"
+        )
+        merged = pd.merge(
+            notrunc,
+            updated_rsn,
+            on="Numbering_original",
+            how="inner"
+        )
+        labels = merged["Anatomical label achille 2024"] + "_" + merged["icol"].astype(str).map(lambda x: x.zfill(3))
+        labels = labels.to_list()
+        
+        atlas_bunch = Bunch(
+            maps=atlas_path,
+            labels=labels,
+            networks=merged.Numbering_new.to_list(),
+            description="Experimental atlas of resting state networks with regions, v.0.3 with 33 networks",
+            **dict(merged)
+        )
+        return atlas_bunch
