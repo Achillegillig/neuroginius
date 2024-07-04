@@ -12,6 +12,42 @@ import nibabel as nib
 import numpy as np
 import os
 
+ROOT_DIR = Path(os.path.dirname(os.path.abspath(__file__))).parent / 'atlases'
+
+def _fetch_atlas_m5n33_regions(
+    atlas_tsv=f"{ROOT_DIR}/M5_N33/RSN_M5_clean2_ws.dat",
+    updated_rsn=f"{ROOT_DIR}/M5_N33/RSN41_cognitive_labeling_updated.csv",
+    atlas_path=f"{ROOT_DIR}/M5_N33/M5_no-trunc.nii.gz"
+    ):
+    original_labels = pd.read_csv(atlas_tsv, sep="\t")
+    original_labels["voxel_value"] = original_labels.index.values + 1
+    networks = "RSN" + original_labels["RSN"].astype(str).apply(lambda x: x.zfill(2))
+    original_labels["Numbering_original"] = networks
+
+    # TODO and simplify please
+    notrunc = original_labels.drop(original_labels[original_labels.tissue.str.contains("trunc")].index, axis=0)
+
+    updated_rsn = pd.read_csv(
+        f"{ROOT_DIR}/M5_N33/RSN41_cognitive_labeling_updated.csv"
+    )
+    merged = pd.merge(
+        notrunc,
+        updated_rsn,
+        on="Numbering_original",
+        how="inner"
+    )
+    labels = merged["Anatomical label achille 2024"] + "_" + merged["icol"].astype(str).map(lambda x: x.zfill(3))
+    labels = labels.to_list()
+    
+    atlas_bunch = Bunch(
+        maps=atlas_path,
+        labels=labels,
+        networks=merged.Numbering_new.to_list(),
+        description="Experimental atlas of resting state networks with regions, v.0.3 with 33 networks",
+        **dict(merged)
+    )
+    return atlas_bunch
+
 
 atlas_mapping = {
     "harvard-oxford": lambda : datasets.fetch_atlas_harvard_oxford("cort-maxprob-thr25-2mm"),
@@ -28,7 +64,8 @@ is_soft_mapping = {
     "schaefer200": False,
     "harvard-oxford": False,
     "msdl": True,
-    "GINNA": False
+    "GINNA": False,
+    "m5_n33": False
 }
 
 class Atlas(Bunch):
@@ -99,39 +136,3 @@ class Atlas(Bunch):
             return self.networks
         l = self.labels
         return list(map(lambda x: str(x).split("_")[2], l))
-    
-    ROOT_DIR = Path(os.path.dirname(os.path.abspath(__file__))).parent / 'atlases'
-
-    def _fetch_atlas_m5n33_regions(
-        atlas_tsv=f"{ROOT_DIR}/M5_N33/RSN_M5_clean2_ws.dat",
-        updated_rsn=f"{ROOT_DIR}/M5_N33/RSN41_cognitive_labeling_updated.csv",
-        atlas_path=f"{ROOT_DIR}/M5_N33/M5_no-trunc.nii.gz"
-        ):
-        original_labels = pd.read_csv(atlas_tsv, sep="\t")
-        original_labels["voxel_value"] = original_labels.index.values + 1
-        networks = "RSN" + original_labels["RSN"].astype(str).apply(lambda x: x.zfill(2))
-        original_labels["Numbering_original"] = networks
-
-        # TODO and simplify please
-        notrunc = original_labels.drop(original_labels[original_labels.tissue.str.contains("trunc")].index, axis=0)
-
-        updated_rsn = pd.read_csv(
-            f"{ROOT_DIR}/M5_N33/RSN41_cognitive_labeling_updated.csv"
-        )
-        merged = pd.merge(
-            notrunc,
-            updated_rsn,
-            on="Numbering_original",
-            how="inner"
-        )
-        labels = merged["Anatomical label achille 2024"] + "_" + merged["icol"].astype(str).map(lambda x: x.zfill(3))
-        labels = labels.to_list()
-        
-        atlas_bunch = Bunch(
-            maps=atlas_path,
-            labels=labels,
-            networks=merged.Numbering_new.to_list(),
-            description="Experimental atlas of resting state networks with regions, v.0.3 with 33 networks",
-            **dict(merged)
-        )
-        return atlas_bunch
