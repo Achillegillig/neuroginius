@@ -1,10 +1,12 @@
-
+import matplotlib.pyplot as plt
 from neuroginius.parcellate import parcellate
 from neuroginius.atlas import Atlas
 import numpy as np
 import os 
 import pandas as pd
 from pathlib import Path
+import seaborn as sns
+from scipy.stats import pearsonr
 from tqdm.auto import tqdm
 
 ROOT_DIR = Path(os.path.dirname(os.path.abspath(__file__)))
@@ -62,10 +64,18 @@ class NeurosynthDecoder:
                     print(f"Parcellated Neurosynth maps saved at {savefile}")
                     # self.neurosynth_maps = [parcellate(map, self.atlas) for map in self.neurosynth_maps]
 
+        if self.metric == 'pearsonr':
+            decoding = {map_name: pearsonr(self.map.ravel(), self.neurosynth_maps.loc[map_name], axis=None)[0] for map_name in self.maps_names}
 
-        return self.map, self.neurosynth_maps
+        self.decoding = pd.DataFrame.from_dict(decoding, orient='index', columns=['map'])
+        return self.decoding
         
+    def plot(self, axes=None):
 
+        if axes is None:
+            fig, axes = plt.subplots(1, 1, figsize=(8, 2))
 
-        # return decoding
+        g = sns.heatmap(self.decoding.sort_values(by='map', ascending=False).T, cmap='coolwarm', cbar_kws={'label': f'{self.metric}'})
+        g.set_xticklabels(g.get_xticklabels(), rotation=60, ha='right')
+        return g
 
