@@ -17,7 +17,7 @@ Issues = "https://github.com/Achillegillig/neuroginius/issues"
 
 
 [tool.poetry.dependencies]
-python = ">3.9.0"
+python = "^3.9.0"
 matplotlib = "^3.5.0"
 nilearn = "^0.10.0"
 numpy = "^1.20.0"
