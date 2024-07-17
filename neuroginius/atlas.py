@@ -12,81 +12,6 @@ import nibabel as nib
 import numpy as np
 import os
 
-ROOT_DIR = Path(os.path.dirname(os.path.abspath(__file__))).parent / 'atlases'
-
-def _fetch_atlas_m5n33_regions(
-    atlas_tsv=f"{ROOT_DIR}/M5_N33/RSN_M5_clean2_ws.dat",
-    updated_rsn=f"{ROOT_DIR}/M5_N33/RSN41_cognitive_labeling_updated.csv",
-    atlas_path=f"{ROOT_DIR}/M5_N33/M5_no-trunc.nii.gz"
-    ):
-    original_labels = pd.read_csv(atlas_tsv, sep="\t")
-    original_labels["voxel_value"] = original_labels.index.values + 1
-    networks = "RSN" + original_labels["RSN"].astype(str).apply(lambda x: x.zfill(2))
-    original_labels["Numbering_original"] = networks
-
-    # TODO and simplify please
-    notrunc = original_labels.drop(original_labels[original_labels.tissue.str.contains("trunc")].index, axis=0)
-
-    updated_rsn = pd.read_excel(
-        f"{ROOT_DIR}/M5_N33/RSN41_cognitive_labeling.xlsx"
-    )
-    merged = pd.merge(
-        notrunc,
-        updated_rsn,
-        on="Numbering_original",
-        how="inner"
-    )
-    labels = merged["label gael-marc anat"] + "_" + merged["icol"].astype(str).map(lambda x: x.zfill(3))
-    labels = labels.to_list()
-    
-    atlas_bunch = Bunch(
-        maps=atlas_path,
-        labels=labels,
-        networks=merged.Numbering_new.to_list(),
-        description="Experimental atlas of resting state networks with regions, v.0.3 with 33 networks",
-        **dict(merged)
-    )
-    return atlas_bunch
-
-def _fetch_atlas_ginna(
-    # atlas_tsv=f"{ROOT_DIR}/GINNA/RSN_M5_clean2_ws.dat",
-    # updated_rsn=f"{ROOT_DIR}/M5_N33/RSN41_cognitive_labeling_updated.csv",
-    atlas_path=os.listdir(f"{ROOT_DIR}/GINNA/maps_3D")
-    ):
-    atlas_path = [os.path.join(f"{ROOT_DIR}/GINNA/maps_3D", f) for f in atlas_path]
-    atlas_path.sort()
-
-    # original_labels = pd.read_csv(atlas_tsv, sep="\t")
-    # original_labels["voxel_value"] = original_labels.index.values + 1
-    # networks = "RSN" + original_labels["RSN"].astype(str).apply(lambda x: x.zfill(2))
-    # original_labels["Numbering_original"] = networks
-
-    updated_rsn = pd.read_excel(
-        f"{ROOT_DIR}/M5_N33/RSN41_cognitive_labeling.xlsx"
-    )
-
-    # # TODO and simplify please
-    # notrunc = original_labels.drop(original_labels[original_labels.tissue.str.contains("trunc")].index, axis=0)
-    
-    # merged = pd.merge(
-    #     notrunc,
-    #     updated_rsn,
-    #     on="Numbering_original",
-    #     how="inner"
-    # )
-    # labels = merged["label gael-marc anat"] + "_" + merged["icol"].astype(str).map(lambda x: x.zfill(3))
-    # labels = labels.to_list()
-    
-    atlas_bunch = Bunch(
-        maps=atlas_path,
-        labels=None,
-        networks=None,
-        description="GINNA atlas from xx paper",
-        # **dict(merged)
-    )
-    return atlas_bunch
-
-
 atlas_mapping = {
     "harvard-oxford": lambda : datasets.fetch_atlas_harvard_oxford("cort-maxprob-thr25-2mm"),
     "schaefer": lambda : datasets.fetch_atlas_schaefer_2018(resolution_mm=2),
@@ -94,9 +19,7 @@ atlas_mapping = {
     "schaefer100": lambda : datasets.fetch_atlas_schaefer_2018(n_rois=100, resolution_mm=2),
     "difumo": lambda : datasets.fetch_atlas_difumo(legacy_format=False),
     "smith": datasets.fetch_atlas_smith_2009,
-    "msdl": datasets.fetch_atlas_msdl,
-    "m5_n33": _fetch_atlas_m5n33_regions,
-    "ginna": _fetch_atlas_ginna
+    "msdl": datasets.fetch_atlas_msdl
 }
 
 is_soft_mapping = {
