@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "neuroginius"
-version = "0.0.6"
+version = "0.0.8"
 description = "A repertoire of tools in python for high-level analyses of fMRI data."
 authors = ["Achille Gillig <achille.gillig@u-bordeaux.fr>", "Jonathan Legrand <jonathanamlegrand@gmail.com>"]
 readme = "README.md"
