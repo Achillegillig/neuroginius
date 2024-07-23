@@ -51,6 +51,7 @@ class Atlas(Bunch):
         new.labels_ = atlas_kwargs["labels"]
         return new
 
+    # TODO Flexible file names
     @classmethod
     def from_path(cls, input_path, soft=True):
         """Method to create an atlas from a path, typically
