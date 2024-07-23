@@ -51,6 +51,41 @@ class Atlas(Bunch):
         new.labels_ = atlas_kwargs["labels"]
         return new
 
+    @classmethod
+    def from_path(cls, input_path, soft=True):
+        """Method to create an atlas from a path, typically
+        for custom parcellations.
+
+        Args:
+            input_path : str or Path to a directory containing
+            at least a parcellation.nii.gz file, and optionnaly
+            a networks.csv file mapping regions (index) to network
+            (values).
+            soft (bool): Whether this is a soft or hard parcellation. 
+            Defaults to True, which seems more reasonable for custom
+            parcellations which are typically outputs from ICA or
+            dict learning.
+
+        Returns:
+            Atlas: New atlas object
+        """
+        input_path = Path(input_path)
+        maps = nib.load(input_path / "parcellation.nii.gz")
+        labels = [f"region_{i}" for i in range(maps.shape[-1])]
+        try:
+            networks = pd.read_csv(input_path / "networks.csv", index_col=0).values.astype(str)
+        except FileNotFoundError:
+            networks = labels
+
+        kwargs = Bunch(
+            name=input_path.name,
+            is_soft=soft,
+            maps=maps,
+            labels_=labels,
+            networks=list(np.squeeze(networks))
+        )
+        return cls(**kwargs)
+
     def get_coords(self):
         if "region_coords" in self.keys():
             return self.region_coords
