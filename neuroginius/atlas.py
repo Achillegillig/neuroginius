@@ -71,7 +71,11 @@ class Atlas(Bunch):
             Atlas: New atlas object
         """
         input_path = Path(input_path)
-        maps = nib.load(input_path / "parcellation.nii.gz")
+        if soft is True:
+            maps = nib.load(input_path / "parcellation.nii.gz")
+        else:
+            maps = nib.load(input_path / "hard.nii.gz")
+            
         labels = [f"region_{i}" for i in range(maps.shape[-1])]
         try:
             networks = pd.read_csv(input_path / "networks.csv", index_col=0).values.astype(str)
