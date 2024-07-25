@@ -1,6 +1,10 @@
 # Vim swap files
 *.swp
 
+# MacOS
+.DS_Store
+
+
 # Standard python gitignore taken from https://github.com/github/gitignore/blob/main/Python.gitignore
 # Byte-compiled / optimized / DLL files
 __pycache__/
