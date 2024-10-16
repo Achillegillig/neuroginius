@@ -139,3 +139,6 @@ class Atlas(Bunch):
             return self.networks
         l = self.labels
         return list(map(lambda x: str(x).split("_")[2], l))
+    
+    def set_macro_labels(self, labels):
+        self.macro_labels = labels
