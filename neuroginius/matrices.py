@@ -1,6 +1,8 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
+import pandas as pd
+
 from itertools import combinations
 import math
 
@@ -44,5 +46,62 @@ def fast_hist(matrix:np.ndarray):
         ax.hist(tst, histtype="step")
     ax.set_xlim(-1, 1)
     return fig, ax
+
+# IMPLEMENT THIS 
+from neuroginius.networks import group_by_networks
+from neuroginius.atlas import Atlas
+from neuroginius.iterables import unique
+import itertools as it
+
+def default_agg_func(block):
+    return (block.mean(),)
+
+class MatrixResult:
+    def __init__(self, matrix, atlas) -> None:
+        self.atlas = atlas
+        self.matrix = matrix
+        self._set_sorted_matrix()
+    
+    def _set_sorted_matrix(self):
+        """Reorganize the matrix by macro labels, store
+        the sorted matrix and a mapping from networks name
+        to indexes in the sorted matrix
+        """
+        ticks, sort_index = group_by_networks(self.atlas.macro_labels)
+        matrix_sort = np.ix_(sort_index, sort_index)
+
+        self.sorted_matrix = self.matrix[matrix_sort]
+        new_labels = sorted(tuple(unique(self.atlas.macro_labels)))
+        self.network_to_idx = pd.Series(dict(zip(
+            new_labels,
+            it.pairwise(ticks)
+        )))
+        self.labels = new_labels
+
+    def get_macro_matrix(self, agg_func=default_agg_func):
+        """Get a matrix reorganized by networks
+        Args:
+            agg_func (function, optional): function to compute
+            the aggregated of each cell, from the block of original
+            values. Defaults to default_agg_func, which performs a simple
+            mean
+
+        Returns:
+            DataFrame: summary per network of the original matrix.
+        """
+        gen = self._gen_macro_values(
+            agg_func=agg_func
+        )
+        comparisons = pd.DataFrame(gen, columns=["node_a", "node_b", "connectivity"])
+        pivoted = comparisons.pivot(index="node_a", columns="node_b")
+        return pivoted.loc[:, "connectivity"]
+
+    # This could be a function on its own
+    def _gen_macro_values(self, agg_func):
+        for network_a, network_b in it.product(self.network_to_idx.index, self.network_to_idx.index):
+            loc_a, loc_b = self.network_to_idx[network_a], self.network_to_idx[network_b]
+            block = self.matrix[loc_a[0]:loc_a[1], loc_b[0]:loc_b[1]]
+
+            yield network_a, network_b, *agg_func(block)
 
 
