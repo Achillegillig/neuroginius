@@ -140,5 +140,9 @@ class Atlas(Bunch):
         l = self.labels
         return list(map(lambda x: str(x).split("_")[2], l))
     
+    @property
+    def n_regions(self):
+        return len(np.unique(self.labels_)) - 1
+    
     def set_macro_labels(self, labels):
         self.macro_labels = labels
