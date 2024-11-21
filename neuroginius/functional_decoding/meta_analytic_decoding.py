@@ -36,46 +36,62 @@ class NeurosynthDecoder:
         dict
             Dictionary with decoding results.
         """
-
         self.map = map
 
-        if not isinstance(self.atlas, Atlas):
-            raise ValueError("Atlas must be an instance of neuroginius.atlas.Atlas")
+        maps_to_process = [self.map] if not isinstance(self.map, list) else self.map
 
-        if do_parcellate:
-            self.map = parcellate(self.map, self.atlas)
-            save_path = ROOT_DIR.parent.parent / f'data/neurosynth/parcellated/{self.atlas.name}'
-            if save_parcellated_db:
-                os.makedirs(save_path, exist_ok=True)
-                if os.path.exists(save_path / f'neurosynth_{self.atlas.name}.csv'):
-                    print('loading existing parcellated neurosynth database')
-                    self.neurosynth_maps = pd.read_csv(save_path / f'neurosynth_{self.atlas.name}.csv', index_col=0)
-                else:
-                    print(f"Parcellating Neurosynth maps using atlas {self.atlas.name}")
-                    list_maps = []
-                    for map in tqdm(self.neurosynth_maps):
-                        list_maps.append(parcellate(map, self.atlas))
+        processed_maps = []
 
-                    self.neurosynth_maps = pd.DataFrame(np.array(list_maps).squeeze(), index=self.maps_names, columns=self.atlas.labels) 
-                    print(self.neurosynth_maps.shape)
+        for current_map in maps_to_process:
 
-                    self.neurosynth_maps.to_csv(save_path / f'neurosynth_{self.atlas.name}.csv')
-                    savefile = save_path / f'neurosynth_{self.atlas.name}.csv'
-                    print(f"Parcellated Neurosynth maps saved at {savefile}")
-                    # self.neurosynth_maps = [parcellate(map, self.atlas) for map in self.neurosynth_maps]
+            map_name = current_map.split('/')[-1].split('.')[0]
+            print(map_name)
 
-        if self.metric == 'pearsonr':
-            decoding = {map_name: pearsonr(self.map.ravel(), self.neurosynth_maps.loc[map_name], axis=None)[0] for map_name in self.maps_names}
+            if not isinstance(self.atlas, Atlas):
+                raise ValueError("Atlas must be an instance of neuroginius.atlas.Atlas")
 
-        self.decoding = pd.DataFrame.from_dict(decoding, orient='index', columns=['map'])
+            if do_parcellate:
+                current_map = parcellate(current_map, self.atlas)
+                save_path = ROOT_DIR.parent.parent / f'data/neurosynth/parcellated/{self.atlas.name}'
+                if save_parcellated_db:
+                    os.makedirs(save_path, exist_ok=True)
+                    if os.path.exists(save_path / f'neurosynth_{self.atlas.name}.csv'):
+                        print('loading existing parcellated neurosynth database')
+                        self.neurosynth_maps = pd.read_csv(save_path / f'neurosynth_{self.atlas.name}.csv', index_col=0)
+                    else:
+                        print(f"Parcellating Neurosynth maps using atlas {self.atlas.name}")
+                        list_maps = []
+                        for map in tqdm(self.neurosynth_maps):
+                            list_maps.append(parcellate(map, self.atlas))
+
+                        self.neurosynth_maps = pd.DataFrame(np.array(list_maps).squeeze(), index=self.maps_names, columns=self.atlas.labels) 
+                        print(self.neurosynth_maps.shape)
+
+                        self.neurosynth_maps.to_csv(save_path / f'neurosynth_{self.atlas.name}.csv')
+                        savefile = save_path / f'neurosynth_{self.atlas.name}.csv'
+                        print(f"Parcellated Neurosynth maps saved at {savefile}")
+
+            if self.metric == 'pearsonr':
+                decoding = {map_name: pearsonr(current_map.ravel(), self.neurosynth_maps.loc[map_name], axis=None)[0] for map_name in self.maps_names}
+
+            processed_maps.append(pd.DataFrame.from_dict(decoding, orient='index', columns=[f'{map_name}']))
+        self.decoding = pd.concat(processed_maps, axis=1)
         return self.decoding
         
-    def plot(self, axes=None):
+    def plot(self, axes=None, **snskwargs):
 
-        if axes is None:
-            fig, axes = plt.subplots(1, 1, figsize=(8, 2))
+        cmap = snskwargs.pop('cmap', 'coolwarm')
+        figsize = snskwargs.pop('figsize', (16, int(2 * self.decoding.shape[1])))
+        # hierarchical clustering of neurosynth maps
+        g = sns.clustermap(self.decoding.T,
+                           cmap=cmap,
+                           cbar_kws={'label': f'{self.metric}'}, 
+                           figsize=figsize,
+                           **snskwargs)
+        plt.setp(g.ax_heatmap.get_xticklabels(), rotation=65, fontsize=10, va='top', ha='right')
+        plt.setp(g.ax_heatmap.get_yticklabels(), rotation=0, fontsize=10, va='center', ha='left')
+        # fig.add_axes(g.ax_heatmap)
 
-        g = sns.heatmap(self.decoding.sort_values(by='map', ascending=False).T, cmap='coolwarm', cbar_kws={'label': f'{self.metric}'})
-        g.set_xticklabels(g.get_xticklabels(), rotation=60, ha='right')
+        # g = sns.heatmap(self.decoding.T, cmap='coolwarm', cbar_kws={'label': f'{self.metric}'})
+        # g.set_xticklabels(g.get_xticklabels(), rotation=60, ha='right')
         return g
-
