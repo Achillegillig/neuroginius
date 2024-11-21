@@ -10,7 +10,7 @@ from sklearn.base import BaseEstimator, TransformerMixin
 from tqdm.auto import tqdm
 from neuroginius.pairwise_interactions import multivariate_distance_correlation
 from neuroginius.parcellate import split_multivariate_timeseries, parcellate
-
+import warnings
 from dask import delayed
 
 class BaseDerivatives(TransformerMixin, BaseEstimator):
@@ -142,6 +142,13 @@ class PairwiseInteraction(BaseDerivatives):
             if self.path is None:
                 raise ValueError("Path is not specified.")
             file_path = self.path
+        self.dataframe_path = self.path / 'db/db.csv'
+        if os.path.isfile(self.dataframe_path):
+            print(f"Loading dataframe from {self.dataframe_path}")
+            self.__data = pd.read_csv(self.dataframe_path, index_col=0)
+            # TODO: check that all required subjects are present
+            warnings.warn('nothing checks that the loaded db is up to date or that it matches the filter', UserWarning)
+            return self.__data
         if self.files is None:
             self.files = self._list_files()
         if filter is not None:

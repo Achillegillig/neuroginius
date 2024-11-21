@@ -40,7 +40,7 @@ def ets_labels_to_int(ets_labels):
     unique_labels = sorted(list(set(normalized_labels)))
     
     # Create an array of integer labels where each label corresponds to the index of the tuple in unique_labels plus one
-    int_labels = np.array([unique_labels.index(label) + 1 for label in normalized_labels], dtype=int)
+    int_labels = np.array([unique_labels.index(label) for label in normalized_labels], dtype=int)
     
     return int_labels
         
