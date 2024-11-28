@@ -54,15 +54,18 @@ class BaseDerivatives(TransformerMixin, BaseEstimator):
 
         def set_derivatives_path(self, path, make_subdir=True):
             self.derivatives_path = Path(path)
-            
             suffix = f'{self.extraction_method}'
             if isinstance(self, PairwiseInteraction):
-                if self.dimensionality_reduction is None:
+                if self.extraction_method == 'mean':
+                    suffix = f'{self.extraction_method}'
+                elif self.dimensionality_reduction is None:
                     suffix = f'{self.extraction_method}/complete'
                 else:
                     suffix = f'{self.extraction_method}/{self.dimensionality_reduction}'
                 suffix = f'{suffix}/{self.metric}'
             self.path = self.derivatives_path / f"{self.name}/{self.atlas.name}/{suffix}"
+            self.dataframe_path = self.path / 'db/db.csv'
+            print(self.path)
             # print(self.path)
             if not os.path.exists(self.path) and make_subdir:
                 os.makedirs(self.path, exist_ok=True)
@@ -101,6 +104,7 @@ class PairwiseInteraction(BaseDerivatives):
                  atlas,
                  extraction_method = 'mean',
                  path=None,
+                 fisher_transform=False,
                  ):
         
         self.atlas = atlas
@@ -112,6 +116,7 @@ class PairwiseInteraction(BaseDerivatives):
         self.files = None
         self.subjects = None
         self.dataframe = None
+        self.fisher_transform = fisher_transform
 
         """
         Initialize the pairwise interaction object.
@@ -145,7 +150,9 @@ class PairwiseInteraction(BaseDerivatives):
         self.dataframe_path = self.path / 'db/db.csv'
         if os.path.isfile(self.dataframe_path):
             print(f"Loading dataframe from {self.dataframe_path}")
-            self.__data = pd.read_csv(self.dataframe_path, index_col=0)
+            self.__data = pd.read_csv(self.dataframe_path, index_col=0, header=None, low_memory=False)
+            if filter is not None:
+                self.__data = self.__data.filter(filter, axis=0)
             # TODO: check that all required subjects are present
             warnings.warn('nothing checks that the loaded db is up to date or that it matches the filter', UserWarning)
             return self.__data
@@ -155,7 +162,7 @@ class PairwiseInteraction(BaseDerivatives):
             self.files = [f for f in self.files if any(filt in f for filt in filter)]
             self.subjects = [s for s in self.subjects if any(filt in s for filt in filter)]
         print(f"Loading files...")
-        data = np.array([self.load_individual(file=file) for file in tqdm(self.files)])
+        data = np.array([self.load_individual(file=file) for file in tqdm(self.files, mininterval=1)])
         print(f"Loaded {len(data)} files.")
         self.__data = pd.DataFrame(data, index=self.subjects)
 
@@ -214,7 +221,10 @@ class PairwiseInteraction(BaseDerivatives):
         #         input = nib.load(input).get_fdata()
 
         if self.metric == "pearsonr":
-            return np.corrcoef(input)[np.triu_indices(input.shape[0], k=1)]
+            out = np.corrcoef(input)[np.triu_indices(input.shape[0], k=1)]
+            if self.fisher_transform:
+                out = np.arctanh(out)
+            return out
         elif self.metric == "mutual-information":
             pass
         elif self.metric == "ar-1":
