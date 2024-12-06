@@ -6,7 +6,9 @@ from scipy.spatial.distance import pdist, squareform
 from scipy.stats import zscore
 from numpy.matlib import repmat
 
-def compute_connectivity(data, method='pearson', matrix_form=True, to_numpy=False, **kwargs):
+def compute_connectivity(data, method='pearson', matrix_form=True, to_numpy=False,
+                         fisher_transform=True,
+                         **kwargs):
     """
     Compute the correlation matrix of a given dataset
     :param data: 2D numpy array
@@ -23,7 +25,10 @@ def compute_connectivity(data, method='pearson', matrix_form=True, to_numpy=Fals
         corr_matrix = np.corrcoef(data, rowvar=True)
     else:
         raise ValueError('method should be pearson. The developpers were too lazy to implement another method yet.')
-     
+    if fisher_transform:
+        print('Fisher transforming the correlation matrix')
+        corr_matrix = np.arctanh(corr_matrix)
+        
     if nodenames is not None:
         if len(nodenames) != corr_matrix.shape[0]:
             raise ValueError('Number of nodenames should be equal to the number of nodes in the data')
