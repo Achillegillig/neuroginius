@@ -150,7 +150,7 @@ class PairwiseInteraction(BaseDerivatives):
         self.dataframe_path = self.path / 'db/db.csv'
         if os.path.isfile(self.dataframe_path):
             print(f"Loading dataframe from {self.dataframe_path}")
-            self.__data = pd.read_csv(self.dataframe_path, index_col=0, header=None, low_memory=False)
+            self.__data = pd.read_csv(self.dataframe_path, index_col=0, header=0, low_memory=False)
             if filter is not None:
                 self.__data = self.__data.filter(filter, axis=0)
             # TODO: check that all required subjects are present
