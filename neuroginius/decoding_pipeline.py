@@ -8,7 +8,7 @@ import itertools
 import sys
 sys.path.insert(1, '/homes_unix/agillig/neuroginius/neuroginius')
 import retrieve_data as rtr
-import functional_connectivity as FC
+import neuroginius.neuroginius.pairwise_interactions as FC
 from tqdm.auto import tqdm
 
 

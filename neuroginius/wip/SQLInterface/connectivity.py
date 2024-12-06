@@ -1,7 +1,7 @@
 from joblib import Parallel, delayed
 import sqlite3
 from SQLInterface import RetrieveData
-import functional_connectivity as FC
+import neuroginius.neuroginius.pairwise_interactions as FC
 from tqdm.auto import tqdm
 from concurrent.futures import ThreadPoolExecutor
 import pandas as pd
