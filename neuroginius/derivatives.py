@@ -11,8 +11,6 @@ from tqdm.auto import tqdm
 from neuroginius.pairwise_interactions import multivariate_distance_correlation
 from neuroginius.parcellate import split_multivariate_timeseries, parcellate
 import warnings
-from dask import delayed
-
 class BaseDerivatives(TransformerMixin, BaseEstimator):
         """
         Initialize the derivatives object.
