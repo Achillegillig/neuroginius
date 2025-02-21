@@ -8,10 +8,9 @@ from pathlib import Path
 from scipy.stats import pearsonr
 from sklearn.base import BaseEstimator, TransformerMixin
 from tqdm.auto import tqdm
-from neuroginius.pairwise_interactions import multivariate_distance_correlation
+from neuroginius.pairwise_interactions import multivariate_distance_correlation, ar_connectivity, multivariate_integration
 from neuroginius.parcellate import split_multivariate_timeseries, parcellate
 import warnings
-from dask import delayed
 
 class BaseDerivatives(TransformerMixin, BaseEstimator):
         """
@@ -65,7 +64,6 @@ class BaseDerivatives(TransformerMixin, BaseEstimator):
                 suffix = f'{suffix}/{self.metric}'
             self.path = self.derivatives_path / f"{self.name}/{self.atlas.name}/{suffix}"
             self.dataframe_path = self.path / 'db/db.csv'
-            print(self.path)
             # print(self.path)
             if not os.path.exists(self.path) and make_subdir:
                 os.makedirs(self.path, exist_ok=True)
@@ -150,7 +148,7 @@ class PairwiseInteraction(BaseDerivatives):
         self.dataframe_path = self.path / 'db/db.csv'
         if os.path.isfile(self.dataframe_path):
             print(f"Loading dataframe from {self.dataframe_path}")
-            self.__data = pd.read_csv(self.dataframe_path, index_col=0, header=None, low_memory=False)
+            self.__data = pd.read_csv(self.dataframe_path, index_col=0, header=0, low_memory=False)
             if filter is not None:
                 self.__data = self.__data.filter(filter, axis=0)
             # TODO: check that all required subjects are present
@@ -206,31 +204,37 @@ class PairwiseInteraction(BaseDerivatives):
             raise ValueError("Data is not computed yet. use fit_individual or fit_transform_individual.")
         return self.__data[index]
     
-    def __compute_individual(self, input):
+    def __compute_individual(self, data):
         """
         Compute the pairwise interaction of the given data.
-        input: 
+        data: 
         """
 
-        if type(input) == list or type(input) == np.ndarray:
-            input = input
-        elif os.path.isfile(input):
-            if input.endswith(".csv"):
-                input = np.loadtxt(input, delimiter=",")
-        #     elif input.endswith(".nii"):
-        #         input = nib.load(input).get_fdata()
+        if type(data) == list or type(data) == np.ndarray:
+            data = data
+        elif os.path.isfile(data):
+            if data.endswith(".csv"):
+                data = np.loadtxt(data, delimiter=",")
+        #     elif data.endswith(".nii"):
+        #         data = nib.load(data).get_fdata()
 
         if self.metric == "pearsonr":
-            out = np.corrcoef(input)[np.triu_indices(input.shape[0], k=1)]
+            out = np.corrcoef(data)[np.triu_indices(data.shape[0], k=1)]
             if self.fisher_transform:
                 out = np.arctanh(out)
             return out
         elif self.metric == "mutual-information":
             pass
         elif self.metric == "ar-1":
-            pass
+            return ar_connectivity(data, lag=1, time_first=False)
+        elif self.metric == "ar-3":
+            return ar_connectivity(data, lag=3, time_first=False)
         elif self.metric == "mdcor":
-            return multivariate_distance_correlation(input)
+            return multivariate_distance_correlation(data)
+        elif self.metric == "multivariate_integration":
+            return multivariate_integration(data, self.atlas.macro_labels)
+        
+        ###POTENTIAL issue: returns a matrix that is then reshape afterwards, redundant info
 
         else:
             pass

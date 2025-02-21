@@ -3,7 +3,8 @@ import numpy as np
 import pandas as pd
 from scipy.stats import t
 from scipy.spatial.distance import pdist, squareform
-from scipy.stats import zscore
+from scipy.stats import zscore, spearmanr
+from statsmodels.tsa.api import VAR
 from numpy.matlib import repmat
 
 def compute_connectivity(data, method='pearson', matrix_form=True, to_numpy=False,
@@ -134,3 +135,60 @@ def multivariate_distance_correlation(X, centering='U-centering', standardize=Tr
 
     # return dCor, dCov, dVar, stats
     return dCor
+
+
+def ar_connectivity(X, lag=1, time_first=True):
+    '''
+    X: shape (n_timepoints, n_nodes) if time_first or (n_nodes, n_timepoints)
+    '''
+    if time_first == False:
+        X = X.T
+
+    model = VAR(X)
+    results = model.fit(maxlags=lag)
+
+    # Extract the weight matrices (coefficient matrices for lags)
+    coef_matrices = results.coefs[lag-1]  # Shape: (lags, n_vars, n_vars)
+    coef_matrices = coef_matrices[np.triu_indices(coef_matrices.shape[1], k=1)].reshape(1,-1).squeeze()
+    return coef_matrices
+
+
+def multivariate_integration(X_ts, network_labels, standardize=True):
+    '''
+    X: shape (n_nodes, n_timepoints)
+    '''
+
+    if standardize:
+        X_ts = zscore(X_ts, axis=0)
+
+    blocks = np.unique(network_labels)
+    seen = {}
+
+    results = pd.DataFrame(np.zeros((len(blocks), len(blocks))), index=blocks, columns=blocks)
+    results[np.diag_indices(len(blocks))] = 1
+
+    for block_a in blocks:
+        for block_b in blocks:
+            if (block_a, block_b) in seen:
+                continue
+            if (block_b, block_a) in seen:
+                continue
+            if block_a == block_b:
+                continue
+            mask = np.array([1 if lbl == block_a else 0 for lbl in network_labels], dtype=bool)
+            X_masked = X_ts[mask,:]
+            X_dist = pdist(X_masked.T, metric='cosine')
+            X_sim_a = 1 / (1 + X_dist)
+
+            mask = np.array([1 if lbl == block_b else 0 for lbl in network_labels], dtype=bool)
+            X_masked = X_ts[mask,:]
+            X_dist_b = pdist(X_masked.T, metric='cosine')
+            X_sim_b = 1 / (1 + X_dist_b)
+
+            sim = spearmanr(X_sim_a, X_sim_b).statistic
+            results.loc[block_a, block_b] = sim
+            results.loc[block_b, block_a] = sim
+
+            seen[(block_a, block_b)] = True
+
+    return results.values[np.triu_indices_from(results, k=1)].reshape(1,-1).squeeze()
