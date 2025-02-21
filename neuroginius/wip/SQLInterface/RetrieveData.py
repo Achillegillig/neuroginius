@@ -10,7 +10,7 @@ import warnings
 from tqdm.auto import tqdm
 from concurrent.futures import ThreadPoolExecutor
 import time
-import functional_connectivity as FC
+import neuroginius.neuroginius.pairwise_interactions as FC
 from joblib import Parallel, delayed
 import warnings
 from threading import Lock

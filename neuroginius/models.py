@@ -22,3 +22,13 @@ class L0Regression(BaseEstimator, RegressorMixin):
 #     def __init__(self):
 #         self.n_folds = 10
 
+class ModelObject:
+    def __init__(self, model, grid):
+        self.model = model
+        self.param_grid = grid
+
+    def get_model(self):
+        return self.model
+    
+    def get_param_grid(self):
+        return self.param_grid
