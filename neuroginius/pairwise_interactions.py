@@ -163,9 +163,9 @@ def multivariate_integration(X_ts, network_labels, standardize=True):
 
     blocks = np.unique(network_labels)
     seen = {}
-
-    results = pd.DataFrame(np.zeros((len(blocks), len(blocks))), index=blocks, columns=blocks)
-    results[np.diag_indices(len(blocks))] = 1
+    initial_data = np.zeros((len(blocks), len(blocks)))
+    np.fill_diagonal(initial_data, 1)
+    results = pd.DataFrame(initial_data, index=blocks, columns=blocks)
 
     for block_a in blocks:
         for block_b in blocks:
