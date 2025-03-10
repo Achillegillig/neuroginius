@@ -33,6 +33,7 @@ def split_multivariate_timeseries(input, atlas):
     elif os.path.isfile(input):
         if input.endswith('.nii') or input.endswith('.nii.gz'):
             input = load_img(input).get_fdata()
+            input = input.reshape(-1, input.shape[3])
 
     
     if isinstance(atlas, np.ndarray):

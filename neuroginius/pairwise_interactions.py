@@ -1,4 +1,5 @@
 #computation of functional connectivity matrices
+import itertools
 import numpy as np 
 import pandas as pd
 from scipy.stats import t
@@ -153,7 +154,48 @@ def ar_connectivity(X, lag=1, time_first=True):
     return coef_matrices
 
 
-def multivariate_integration(X_ts, network_labels, standardize=True):
+def multivariate_integration(X_ts, standardize=True, time_first=False):
+    '''
+    X: list with each element of shape (n_nodes, n_timepoints)
+    '''
+    if time_first:
+        X_ts = [X.T for X in X_ts]
+
+    if standardize:
+        X_ts = [zscore(X, axis=0) for X in X_ts]
+
+    blocks = np.arange(len(X_ts))
+    print(blocks)
+    block_pairs = list(itertools.combinations(range(len(X_ts)), 2))
+    seen = {}
+    initial_data = np.zeros((len(X_ts), len(X_ts)))
+    np.fill_diagonal(initial_data, 1)
+    results = pd.DataFrame(initial_data, index=blocks, columns=blocks)
+
+    for block_a, block_b in block_pairs:
+        if (block_a, block_b) in seen:
+            continue
+        if (block_b, block_a) in seen:
+            continue
+        if block_a == block_b:
+            continue
+
+        X_dist = pdist(X_ts[block_a].T, metric='cosine')
+        X_sim_a = 1 / (1 + X_dist)   
+
+    
+        X_dist_b = pdist(X_ts[block_b].T, metric='cosine')
+        X_sim_b = 1 / (1 + X_dist_b)
+
+        sim = spearmanr(X_sim_a, X_sim_b).statistic
+        results.loc[block_a, block_b] = sim
+        results.loc[block_b, block_a] = sim
+
+        seen[(block_a, block_b)] = True
+
+    return results.values[np.triu_indices_from(results, k=1)].reshape(1,-1).squeeze()
+
+def regionavg_multivariate_integration(X_ts, network_labels, standardize=True):
     '''
     X: shape (n_nodes, n_timepoints)
     '''

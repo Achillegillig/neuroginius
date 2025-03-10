@@ -75,6 +75,16 @@ class BaseDerivatives(TransformerMixin, BaseEstimator):
             if return_values:
                 return self.subjects
             
+        def filter(self, filter):
+            # keep only files that contain the filter, eg 'REST1', 'REST2'
+            self.files = [f for f in self.files if filter in f]
+            
+        def subjects_from_file(self, file_path, return_values=False):
+            sublist = np.loadtxt(file_path, dtype=str)
+            self.subjects = sublist
+            if return_values:
+                return self.subjects
+            
         def _list_files(self):
             filelist = [os.path.join(self.path, f) for f in os.listdir(self.path) if os.path.isfile(os.path.join(self.path, f))]
             filelist.sort()
@@ -87,6 +97,9 @@ class BaseDerivatives(TransformerMixin, BaseEstimator):
                 raise ValueError("Files are not specified. use set_derivatives_path.")
             if self.files is None:
                 self.files = self._list_files()
+            if prefix == "":
+                # subject id is assumed to be the start of the filename
+                return [f.split('/')[-1].split('_')[0] for f in self.files]
             seq = [re.search(rf'({prefix}\d+)', f).group(0) for f in self.files]
             if keep_prefix == False:
                 return [seq.split(prefix)[1] for seq in seq]
