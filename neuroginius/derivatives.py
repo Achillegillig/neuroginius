@@ -266,6 +266,7 @@ class ParcellatedTimeseries(BaseDerivatives):
     def __init__(self, 
                  atlas, 
                  extraction_method='mean',
+                 regress_global_signal=True,
                  derivatives_path=None
                  ):
         """
@@ -281,8 +282,9 @@ class ParcellatedTimeseries(BaseDerivatives):
         self.derivatives_path = Path(derivatives_path)
         self.path = None
         self.files = None
+        self.gsreg = 'gsreg' if regress_global_signal else 'nogsreg'
         if self.derivatives_path is not None:
-            self.path = self.derivatives_path / f"parcellated_timeseries/{self.atlas.name}/{self.extraction_method}"
+            self.path = self.derivatives_path / f"parcellated_timeseries/{self.gsreg}/{self.atlas.name}/{self.extraction_method}"
             os.makedirs(self.path, exist_ok=True)
             self.files = self._list_files()
         # self.files = self._list_files()
