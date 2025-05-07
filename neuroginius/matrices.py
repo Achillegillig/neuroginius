@@ -5,11 +5,14 @@ import pandas as pd
 
 from itertools import combinations
 import math
+from sklearn.base import TransformerMixin, BaseEstimator
 
+import warnings
 
 def reshape_pvalues(pvalues):
     l = len(pvalues)
-    
+    # AG: something is wrong with this function when handling matrices with diagonal
+    warnings.warn('using this function to reshape vectors that contain diagonal information will lead to incorrected results', UserWarning)
     # Mat size is the positive root of :
     # n**2 - n - 2l = 0 
     # Where l is the length of pvalues array
@@ -56,6 +59,26 @@ import itertools as it
 def default_agg_func(block):
     return (block.mean(),)
 
+
+class MatrixTransformer(BaseEstimator, TransformerMixin):
+    def __init__(self, atlas:Atlas):
+        self.atlas = atlas
+
+    def to_matrix(pairwise_results, labels, k=0):
+        n_parcels = len(np.unique(labels))
+        new_mat = np.zeros((n_parcels, n_parcels))
+        new_mat[np.triu_indices_from(new_mat, k=k)] = pairwise_results
+        new_mat = new_mat + new_mat.T
+        if k==0:
+            new_mat[np.diag_indices_from(new_mat)] = new_mat[np.diag_indices_from(new_mat)] / 2
+        return new_mat
+    
+    def fit(self, X, y=None):
+        return self
+
+    def transform(self, X, y=None):
+        return MatrixResult(X, self.atlas)
+    
 class MatrixResult:
     def __init__(self, matrix, atlas) -> None:
         self.atlas = atlas
@@ -100,7 +123,7 @@ class MatrixResult:
     def _gen_macro_values(self, agg_func):
         for network_a, network_b in it.product(self.network_to_idx.index, self.network_to_idx.index):
             loc_a, loc_b = self.network_to_idx[network_a], self.network_to_idx[network_b]
-            block = self.matrix[loc_a[0]:loc_a[1], loc_b[0]:loc_b[1]]
+            block = self.sorted_matrix[loc_a[0]:loc_a[1], loc_b[0]:loc_b[1]]
 
             yield network_a, network_b, *agg_func(block)
 
