@@ -32,6 +32,10 @@ is_soft_mapping = {
 }
 
 class Atlas(Bunch):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._macro_labels_set = False
+
     @classmethod
     def from_kwargs(cls, name, soft, **atlas_kwargs) -> None:
         new = cls(**atlas_kwargs)
@@ -130,11 +134,15 @@ class Atlas(Bunch):
         # Check type of labels instead?
         if self.name == "difumo":
             return self.labels_.difumo_names.to_list()
+        elif self.name == 'M5':
+            return [f"region_{i}" for i in range(1,449)]
         else:
             return self.labels_
 
     @property
     def macro_labels(self):
+        if self._macro_labels_set:
+            return self._macro_labels
         if "networks" in self.keys():
             return self.networks
         l = self.labels
@@ -145,4 +153,8 @@ class Atlas(Bunch):
         return len(np.unique(self.labels_)) - 1
     
     def set_macro_labels(self, labels):
-        self.macro_labels = labels
+        self._macro_labels = labels
+        self._macro_labels_set = True
+    
+    def set_labels(self, labels):
+        self.labels = labels
