@@ -63,7 +63,10 @@ class BaseDerivatives(TransformerMixin, BaseEstimator):
                     suffix = f'{self.extraction_method}/{self.dimensionality_reduction}'
                 suffix = f'{suffix}/{self.metric}'
             self.path = self.derivatives_path / f"{self.name}/{self.atlas.name}/{suffix}"
-            self.dataframe_path = self.path / 'db/db.csv'
+            if self.session is not None:
+                self.dataframe_path = self.path / f'db/db_{self.session}.csv'
+            else:
+                self.dataframe_path = self.path / 'db/db.csv'
             # print(self.path)
             if not os.path.exists(self.path) and make_subdir:
                 os.makedirs(self.path, exist_ok=True)
@@ -114,6 +117,7 @@ class PairwiseInteraction(BaseDerivatives):
                  metric,
                  atlas,
                  extraction_method = 'mean',
+                 session=None,
                  path=None,
                  fisher_transform=False,
                  ):
@@ -128,6 +132,7 @@ class PairwiseInteraction(BaseDerivatives):
         self.subjects = None
         self.dataframe = None
         self.fisher_transform = fisher_transform
+        self.session = session
 
         """
         Initialize the pairwise interaction object.
@@ -158,10 +163,13 @@ class PairwiseInteraction(BaseDerivatives):
             if self.path is None:
                 raise ValueError("Path is not specified.")
             file_path = self.path
-        self.dataframe_path = self.path / 'db/db.csv'
+        if self.session is not None:
+            self.dataframe_path = file_path / f'db/db_{self.session}.csv'
+        else:
+            self.dataframe_path = self.path / 'db/db.csv'
         if os.path.isfile(self.dataframe_path):
             print(f"Loading dataframe from {self.dataframe_path}")
-            self.__data = pd.read_csv(self.dataframe_path, index_col=0, header=None, low_memory=False)
+            self.__data = pd.read_csv(self.dataframe_path, index_col=0, low_memory=False)
             if filter is not None:
                 self.__data = self.__data.filter(filter, axis=0)
             # TODO: check that all required subjects are present
