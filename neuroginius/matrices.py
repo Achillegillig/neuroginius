@@ -28,6 +28,15 @@ def reshape_pvalues(pvalues):
 
     return arr + arr.T
 
+def to_matrix(pairwise_results, n_parcels, k=0):
+    new_mat = np.zeros((n_parcels, n_parcels))
+    new_mat[np.triu_indices_from(new_mat, k=k)] = pairwise_results
+
+    new_mat = new_mat + new_mat.T
+    if k==0:
+        new_mat[np.diag_indices_from(new_mat)] = new_mat[np.diag_indices_from(new_mat)] / 2
+    return new_mat
+
 def fast_hist(matrix:np.ndarray):
     """Plot values of arrays containing
     individuals correlations
@@ -100,7 +109,7 @@ class MatrixResult:
     def _gen_macro_values(self, agg_func):
         for network_a, network_b in it.product(self.network_to_idx.index, self.network_to_idx.index):
             loc_a, loc_b = self.network_to_idx[network_a], self.network_to_idx[network_b]
-            block = self.matrix[loc_a[0]:loc_a[1], loc_b[0]:loc_b[1]]
+            block = self.sorted_matrix[loc_a[0]:loc_a[1], loc_b[0]:loc_b[1]]
 
             yield network_a, network_b, *agg_func(block)
 
