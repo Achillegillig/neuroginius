@@ -79,8 +79,8 @@ class BaseDerivatives(TransformerMixin, BaseEstimator):
                 return self.subjects
             
         def filter(self, filter):
-            # keep only files that contain the filter, eg 'REST1', 'REST2'
-            self.files = [f for f in self.files if filter in f]
+            # keep only files that contain the filter, eg 'REST1', 'REST2', REST
+            self.files = [f for f in self.files if f'_{filter}_' in f]
             
         def subjects_from_file(self, file_path, return_values=False):
             sublist = np.loadtxt(file_path, dtype=str)
@@ -287,7 +287,7 @@ class ParcellatedTimeseries(BaseDerivatives):
         self.name = 'parcellated_timeseries'
         self.atlas = atlas
         self.extraction_method = extraction_method
-        self.derivatives_path = Path(derivatives_path)
+        self.derivatives_path = Path(derivatives_path) if derivatives_path is not None else None
         self.path = None
         self.files = None
         self.gsreg = 'gsreg' if regress_global_signal else 'nogsreg'
